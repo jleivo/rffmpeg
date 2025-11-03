@@ -23,10 +23,10 @@ This guide is provided as a basic starting point - there are myriad possible com
 
    To make life easier below, you can store this in a variable that I will reference frequently later:
 
-```bash
-export jellyfin_data_path="/var/lib/jellyfin"
-export jellyfin_cache_path="/var/cache/jellyfin"
-```
+   ```bash
+   export jellyfin_data_path="/var/lib/jellyfin"
+   export jellyfin_cache_path="/var/cache/jellyfin"
+   ```
 
    The important subdirectories for `rffmpeg`'s operation are:
 
@@ -41,7 +41,6 @@ export jellyfin_cache_path="/var/cache/jellyfin"
 
 1. Create an SSH keypair to use for `rffmpeg`'s login to the remote server. For ease of use with the following steps, use the Jellyfin service user (`jellyfin`) to create the keypair and store it under its home directory (the Jellyfin data path above). I use `rsa` here but you can substitute `ed25519` instead (avoid `dsa` and `ecdsa` for reasons I won't get into here). Once done, copy the public key to `authorized_keys` which will be used to authenticate the key later.
 
-#### jellyfin1
    ```bash
    export keytype="rsa" &&\
    sudo -u jellyfin mkdir ${jellyfin_data_path}/.ssh &&\
@@ -54,9 +53,9 @@ export jellyfin_cache_path="/var/cache/jellyfin"
 
 1. Scan and save the SSH host key of the transcode server(s), to avoid a prompt later:
 
-```bash
-ssh-keyscan transcode1 | sudo -u jellyfin tee -a ${jellyfin_data_path}/.ssh/known_hosts
-```
+   ```bash
+   ssh-keyscan transcode1 | sudo -u jellyfin tee -a ${jellyfin_data_path}/.ssh/known_hosts
+   ```
 
    * **NOTE:** Ensure you use the exact name here that you will use in `rffmpeg`. If this is an FQDN (e.g. `jellyfin1.mydomain.tld`) or an IP (e.g. `192.168.0.101`) instead of a short name, use that instead in this command, or repeat it for every possible option (it doesn't hurt).
 
@@ -64,40 +63,36 @@ ssh-keyscan transcode1 | sudo -u jellyfin tee -a ${jellyfin_data_path}/.ssh/know
 
 1. Install the required Python3 dependencies of `rffmpeg`:
 
-#### jellyfin1
-```bash
-sudo apt -y install python3-yaml python3-click python3-subprocess
-```
+   ```bash
+   sudo apt -y install python3-yaml python3-click python3-subprocess
+   ```
 
    * **NOTE:** On some Ubuntu versions, `python3-subprocess` does not exist, and should instead be part of the Python standard library. Skip installing this package if it can't be found.
 
 2. Clone the `rffmpeg` repository somewhere onto the system, then install the `rffmpeg` binary, make it executable, and prepare symlinks for the command names `ffmpeg` and `ffprobe` to it. I recommend storing these in `/usr/local/bin` for simplicity and so that they are present on the default `$PATH` for most users.
 
-#### jellyfin1
-```bash
-git clone https://github.com/joshuaboniface/rffmpeg # or download the files manually
-sudo cp rffmpeg/rffmpeg /usr/local/bin/rffmpeg &&\
-sudo chmod +x /usr/local/bin/rffmpeg &&\
-sudo ln -s /usr/local/bin/rffmpeg /usr/local/bin/ffmpeg &&\
-sudo ln -s /usr/local/bin/rffmpeg /usr/local/bin/ffprobe
-```
+   ```bash
+   git clone https://github.com/joshuaboniface/rffmpeg # or download the files manually
+   sudo cp rffmpeg/rffmpeg /usr/local/bin/rffmpeg &&\
+   sudo chmod +x /usr/local/bin/rffmpeg &&\
+   sudo ln -s /usr/local/bin/rffmpeg /usr/local/bin/ffmpeg &&\
+   sudo ln -s /usr/local/bin/rffmpeg /usr/local/bin/ffprobe
+   ```
 
 3. Optional: Create a directory for the `rffmpeg` configuration at `/etc/rffmpeg`, then copy `rffmpeg.yml.sample` to `/etc/rffmpeg/rffmpeg.yml` and edit it to suit your needs if required. Generally, if you're following this guide exactly, you will not need to install this file or adjust anything in in it. If you do require help though, I require debug logging to be enabled via the configuration file, so it's probably best to get this out of the way when installing `rffmpeg`:
 
-#### jellyfin1
-```bash
-sudo mkdir -p /etc/rffmpeg &&\
-sudo cp rffmpeg/rffmpeg.yml.sample /etc/rffmpeg/rffmpeg.yml &&\
-sudo $EDITOR /etc/rffmpeg/rffmpeg.yml  # if required
-```
+   ```bash
+   sudo mkdir -p /etc/rffmpeg &&\
+   sudo cp rffmpeg/rffmpeg.yml.sample /etc/rffmpeg/rffmpeg.yml &&\
+   sudo $EDITOR /etc/rffmpeg/rffmpeg.yml  # if required
+   ```
 
 5. Initialize `rffmpeg` (note the `sudo` command) and add at the target host to it. You can add other hosts now or later, and set weights of hosts, if required; for full details see the [main README](../README.md) or run `rffmpeg --help` to view the CLI help menu.
 
-#### jellyfin1
-```bash
-sudo rffmpeg init --yes &&\
-rffmpeg add --weight 1 transcode1
-```
+   ```bash
+   sudo rffmpeg init --yes &&\
+   rffmpeg add --weight 1 transcode1
+   ```
 
 ### NFS Setup
 
@@ -105,9 +100,9 @@ rffmpeg add --weight 1 transcode1
 
 1. Install the NFS kernel server. We will use NFS to export the various required directories so the transcode machine can read from and write to them.
 
-```bash
-sudo apt -y install nfs-kernel-server
-```
+   ```bash
+   sudo apt -y install nfs-kernel-server
+   ```
 
 2. Create an `/etc/exports` configuration. What to put here can vary a lot, but here are some important points:
 
@@ -118,33 +113,33 @@ sudo apt -y install nfs-kernel-server
 
    An example `/etc/exports` file would look like this:
 
-```text
-# /etc/exports: the access control list for filesystems which may be exported
-#               to NFS clients.  See exports(5).
-#
-# Other examples removed
+   ```text
+   # /etc/exports: the access control list for filesystems which may be exported
+   #               to NFS clients.  See exports(5).
+   #
+   # Other examples removed
 
-# jellyfin_data_path   first host                                                  second host, etc.
-/var/lib/jellyfin      192.168.0.101/32(rw,sync,no_subtree_check,no_root_squash)   192.168.0.102/32(rw,sync,no_subtree_check,no_root_squash)
-# jellyfin_cache_path  first host                                                  second host, etc.
-/var/cache/jellyfin    192.168.0.101/32(rw,sync,no_subtree_check,no_root_squash)   192.168.0.102/32(rw,sync,no_subtree_check,no_root_squash)
-# Local media path if required
-/srv/mymedia           192.168.0.101/32(rw,sync,no_subtree_check,no_root_squash)   192.168.0.102/32(rw,sync,no_subtree_check,no_root_squash)
-```
+   # jellyfin_data_path   first host                                                  second host, etc.
+   /var/lib/jellyfin      192.168.0.101/32(rw,sync,no_subtree_check,no_root_squash)   192.168.0.102/32(rw,sync,no_subtree_check,no_root_squash)
+   # jellyfin_cache_path  first host                                                  second host, etc.
+   /var/cache/jellyfin    192.168.0.101/32(rw,sync,no_subtree_check,no_root_squash)   192.168.0.102/32(rw,sync,no_subtree_check,no_root_squash)
+   # Local media path if required
+   /srv/mymedia           192.168.0.101/32(rw,sync,no_subtree_check,no_root_squash)   192.168.0.102/32(rw,sync,no_subtree_check,no_root_squash)
+   ```
 
 3. Reload the exports file and ensure the NFS server is properly exporting it now:
 
-```bash
-sudo exportfs -arfv
-sudo exportfs
-```
-should output something like
-```text
-/var/lib/jellyfin   192.168.0.101/32
-/var/lib/jellyfin   192.168.0.102/32
-/var/cache/jellyfin 192.168.0.101/32
-/var/cache/jellyfin 192.168.0.102/32
-```
+   ```bash
+   sudo exportfs -arfv
+   sudo exportfs
+   ```
+   should output something like
+   ```text
+   /var/lib/jellyfin   192.168.0.101/32
+   /var/lib/jellyfin   192.168.0.102/32
+   /var/cache/jellyfin 192.168.0.101/32
+   /var/cache/jellyfin 192.168.0.102/32
+   ```
 
 ## Set up the transcode server (`transcode1`)
 
@@ -161,32 +156,32 @@ export jellyfin_cache_path="/var/cache/jellyfin"
 
 2. Install the correct `jellyfin-ffmpeg` package for your version of Jellyfin; check which version is installed on your `jellyfin1` system with `dpkg -l | grep jellyfin-ffmpeg`, then install that version on this host too; follow the same steps as you would to install Jellyfin on the media server, only don't install `jellyfin` (and `jellyfin-server`/`jellyfin-web`) itself, just the `jellyfin-ffmpeg` of the required version.
 
-in jellyfin1
-```bash
-dpkg -l | grep jellyfin-ffmpeg
-#   ii  jellyfin-ffmpeg6                     6.0.1-8-bookworm                        amd64        Tools for transcoding, streaming and playing of multimedia files
-```
-in transcode1
-```bash
-sudo apt -y install curl gnupg &&\
-curl -fsSL https://repo.jellyfin.org/ubuntu/jellyfin_team.gpg.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/jellyfin.gpg &&\
-echo "deb [arch=$( dpkg --print-architecture )] https://repo.jellyfin.org/$( awk -F'=' '/^ID=/{ print $NF }' /etc/os-release ) $( awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release ) main" | sudo tee /etc/apt/sources.list.d/jellyfin.list &&\
-sudo apt update &&\
-sudo apt install -y jellyfin-ffmpeg6
-```
+   in jellyfin1
+   ```bash
+   dpkg -l | grep jellyfin-ffmpeg
+   #   ii  jellyfin-ffmpeg6                     6.0.1-8-bookworm                        amd64        Tools for transcoding, streaming and playing of multimedia files
+   ```
+   in transcode1
+   ```bash
+   sudo apt -y install curl gnupg &&\
+   curl -fsSL https://repo.jellyfin.org/ubuntu/jellyfin_team.gpg.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/jellyfin.gpg &&\
+   echo "deb [arch=$( dpkg --print-architecture )] https://repo.jellyfin.org/$( awk -F'=' '/^ID=/{ print $NF }' /etc/os-release ) $( awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release ) main" | sudo tee /etc/apt/sources.list.d/jellyfin.list &&\
+   sudo apt update &&\
+   sudo apt install -y jellyfin-ffmpeg6
+   ```
 
 3. Install the NFS client utilities:
 
-```bash
-sudo apt install -y nfs-common
-```
+   ```bash
+   sudo apt install -y nfs-common
+   ```
 
 4. Create the Jellyfin service user and its default group; ensure you use the exact same UID and GID values you found in the beginning of the last section and adjust the example here to match yours:
 
-```bash
-sudo groupadd --gid 117 jellyfin &&\
-sudo useradd --uid 110 --gid jellyfin --shell /bin/bash --no-create-home --home-dir ${jellyfin_data_path} jellyfin
-```
+   ```bash
+   sudo groupadd --gid 117 jellyfin &&\
+   sudo useradd --uid 110 --gid jellyfin --shell /bin/bash --no-create-home --home-dir ${jellyfin_data_path} jellyfin
+   ```
 
    * **NOTE:** For some hardware acceleration, you might need to add this user to additional groups. For example `--groups video,render`.
 
@@ -194,12 +189,12 @@ sudo useradd --uid 110 --gid jellyfin --shell /bin/bash --no-create-home --home-
 
 5. Create the Jellyfin directories at the same location as on the media server, and set it immutable so that it won't be written to if the NFS mount goes down:
 
-```bash
-for file in ${jellyfin_data_path} ${jellyfin_cache_path}; do
-   sudo mkdir ${file} &&\
-   sudo chattr +i ${file}
-done
-```
+   ```bash
+   for file in ${jellyfin_data_path} ${jellyfin_cache_path}; do
+      sudo mkdir ${file} &&\
+      sudo chattr +i ${file}
+   done
+   ```
 
    * **NOTE:** Don't worry about permissions here; the mount will set those.
 
