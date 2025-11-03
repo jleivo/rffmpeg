@@ -194,4 +194,6 @@ I'm always happy to help, though please ensure you try to follow the setup guide
 
 ### `rffmpeg-go` - forked project
 
+NOTICE: project was archived in Oct 27, 2024.
+
 There's also a [fork of this script written in Go](https://github.com/aleksasiriski/rffmpeg-go) with semver tags and binaries available, as well as docker images for both the [script](https://github.com/aleksasiriski/rffmpeg-go/pkgs/container/rffmpeg-go) and [Jellyfin](https://github.com/aleksasiriski/jellyfin-rffmpeg).
